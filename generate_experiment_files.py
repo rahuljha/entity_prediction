@@ -114,6 +114,7 @@ class BuildExperiment:
         self.load_network_features()
         print "Loading lexical network features ..."
         self.load_lexical_features()
+
     def load_network_features(self):
 
         nw_file = open("/data0/projects/fuse/entity_prediction/features_cache/citednw_features_cache.txt", "r")
@@ -214,28 +215,35 @@ class BuildExperiment:
     def load_lexical_features(self):
         # features from lexical code
 
-        papers = [p.pid for p in self.aan.get_restricted_papers(1980, 2011)]
-        position_lex_features = ["lexrank_same_year", "lexrank_prev_year",  "min_sim_cited",  "max_sim_cited",  "avg_sim_cited",  # from lexrank file
-                                 "min_sim_same_year",  "max_sim_same_year",  "avg_sim_same_year",  "min_sim_prev_year",  "max_sim_prev_year",  "avg_sim_prev_year",  # from sim file
-                                 "min_title_term_weight",  "max_title_term_weight",  "avg_title_term_weight",  "title_term_density",  # from title term
-                                 "min_abs_term_weight",  "max_abs_term_weight",  "avg_abs_term_weight",  "abs_term_density" # from abs term
-                                 ]
+#        papers = [p.pid for p in self.aan.get_restricted_papers(1980, 2011)]
+        lexrank_features = ["lexrank_same_year", "lexrank_prev_year",  "min_sim_cited",  "max_sim_cited",  "avg_sim_cited"]  # from lexrank file
+        sim_features = ["min_sim_same_year",  "max_sim_same_year",  "avg_sim_same_year",  "min_sim_prev_year",  "max_sim_prev_year",  "avg_sim_prev_year"]  # from sim file
+        title_density_features = ["min_title_term_weight",  "max_title_term_weight",  "avg_title_term_weight",  "title_term_density"]  # from title term
+        abs_density_features = ["min_abs_term_weight",  "max_abs_term_weight",  "avg_abs_term_weight",  "abs_term_density"]
 
-        for pid in papers:
+        lexrank_file = open("/data0/projects/fuse/citation_prediction/lexical_features/lexrank_features_allyears.txt", "r")
+        sim_file = open("/data0/projects/fuse/citation_prediction/lexical_features/similarity_features_allyears.txt", "r")
+        title_d_file = open("/data0/projects/fuse/citation_prediction/lexical_features/title_term_densification_allyears.txt", "r")
+        abs_d_file = open("/data0/projects/fuse/citation_prediction/lexical_features/abstract_term_densification_allyears.txt", "r")
+
+        self.read_lex_features(lexrank_features, lexrank_file)
+        self.read_lex_features(sim_features, sim_file)
+        self.read_lex_features(title_density_features, title_d_file)
+        self.read_lex_features(abs_density_features, abs_d_file)
+
+
+    def read_lex_features(self, feat_list, in_file):
+        for line in in_file:
+            items = line.strip().split("\t")
+            pid = items[0]
             if pid not in self.position_features:
                 self.position_features[pid] = {}
-
-            lf_string = Popen(["perl", "../citation_prediction/get_lexical_features.pl", pid, "0"], stdout=PIPE).communicate()[0]
-            items = lf_string.strip().split("\t");
-            items = items[1:] # remove the pid
-            if len(items) < 19: # this means features weren't calculated
-                continue
-
-            for i,name in enumerate(position_lex_features):
+            feats = items[1:]
+            for idx,feat in enumerate(feat_list):
                 try:
-                    self.position_features[pid][name] = float(items[i])
+                    self.position_features[pid][feat] = float(feats[idx])
                 except:
-                    self.position_features[pid][name] = 0
+                    self.position_features[pid][feat] = 0
     
 if(__name__ == "__main__"):
     year = sys.argv[1]
